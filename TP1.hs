@@ -1,8 +1,9 @@
 import Data.List
-import Data.Array
-import  Data.Bits
-import System.Win32 (COORD(yPos))
+import Data.Bits
 import Data.Ord (comparing)
+
+--dynamic programming e bit masking, travelers salesman se o numero em binario só for tudo a 1, mto eficiente
+
 
 -- PFL 2024/2025 Practical assignment 1
 
@@ -79,11 +80,34 @@ rome r = [city | (city, adjcount) <- adjacentlist r, adjcount == max]
  
 
 
-isStronglyConnected :: RoadMap -> Bool
-isStronglyConnected = undefined
+-- Função auxiliar para encontrar as cidades adjacentes de uma cidade
+adjacentCities :: RoadMap -> City -> [City]
+adjacentCities [] _ = []
+adjacentCities ((a, b, _):xs) c
+    | a == c = b : adjacentCities xs c
+    | b == c = a : adjacentCities xs c
+    | otherwise = adjacentCities xs c
 
+-- Função DFS (Depth First Search) para visitar todas as cidades acessíveis a partir de uma cidade
+dfs :: City -> RoadMap -> [City] -> [City]
+dfs c r visited
+    | c `elem` visited = visited  -- Se a cidade já foi visitada, retorna a lista de cidades visitadas
+    | otherwise = foldl (\acc city -> dfs city r acc) (c : visited) (adjacentCities r c)
+    -- Explora recursivamente as cidades adjacentes e acumula as visitadas
+
+-- Função que verifica se o grafo é fortemente conectado
+isStronglyConnected :: RoadMap -> Bool
+isStronglyConnected r =
+    let allCities = cities r  -- Obtém todas as cidades do RoadMap
+        -- Função auxiliar que verifica se todas as cidades são alcançáveis a partir de uma cidade c
+        checkCity c = length (dfs c r []) == length allCities
+    in all checkCity allCities  -- Verifica se todas as cidades podem ser ponto inicial de uma DFS válida
+
+
+-- LISTA ADJACENTE MELHOR ALGORÍTIMO
 shortestPath :: RoadMap -> City -> City -> [Path]
 shortestPath = undefined
+
 
 travelSales :: RoadMap -> Path
 travelSales = undefined
@@ -92,6 +116,7 @@ tspBruteForce :: RoadMap -> Path
 tspBruteForce = undefined -- only for groups of 3 people; groups of 2 people: do not edit this function
 
 -- Some graphs to test your work
+
 gTest1 :: RoadMap
 gTest1 = [(7,6,1),(8,2,2),(6,5,2),(0,1,4),(2,5,4),(8,6,6),(2,3,7),(7,8,7),(0,7,8),(1,2,8),(3,4,9),(5,4,10),(1,7,11),(3,5,14),(7,5,14),(8,3,15)]
 
@@ -100,3 +125,7 @@ gTest2 = [(0,1,10),(0,2,15),(0,3,20),(1,2,35),(1,3,25),(2,3,30)]
 
 gTest3 :: RoadMap -- unconnected graph
 gTest3 = [(0,1,4),(2,3,2)]
+
+
+gTest4 :: RoadMap
+gTest4 = [(0,1,4),(1,2,3),(2,3,2),(3,0,1),(0,2,5),(1,3,4)]
