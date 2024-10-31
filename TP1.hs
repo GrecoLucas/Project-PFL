@@ -1,7 +1,7 @@
+import qualified Data.List
+import qualified Data.Bits
+import qualified Data.Array
 import Data.List
-import Data.Bits
-import Data.Ord (comparing)
-
 --dynamic programming e bit masking, travelers salesman se o numero em binario só for tudo a 1, mto eficiente
 
 
@@ -16,10 +16,9 @@ type Distance = Int
 type RoadMap = [(City,City,Distance)]
 
 -- nub remove duplicates from a list
--- add all the first elements of the roadmap and all the second elements of the roadmap to a list and remove duplicates
+-- add all the first elements of the roadmap and all the second elements of the roadmap to a list and remove duplicates with nub
 cities :: RoadMap -> [City]
-cities r = nub ([c | (c, _, _) <- r] ++ [c | (_, c, _) <- r])
-
+cities r = Data.List.nub ([c | (c, _, _) <- r] ++ [c | (_, c, _) <- r])
 
 -- if the first element its equal to one of the input cities, and the second element its equal to the other input city, return true
 areAdjacent :: RoadMap -> City -> City -> Bool
@@ -104,9 +103,21 @@ isStronglyConnected r =
     in all checkCity allCities  -- Verifica se todas as cidades podem ser ponto inicial de uma DFS válida
 
 
--- LISTA ADJACENTE MELHOR ALGORÍTIMO
-shortestPath :: RoadMap -> City -> City -> [Path]
-shortestPath = undefined
+dfs2 :: RoadMap -> City -> City -> Path -> [(Path, Distance)]
+dfs2 graph current target path
+    | current == target = case pathDistance graph (path ++ [current]) of
+        Just d -> [(path ++ [current], d)]
+        Nothing -> []
+    | current `elem` path = []  -- Evita ciclos
+    | otherwise = concat [dfs2 graph neighbor target (path ++ [current]) | (neighbor, _) <- adjacent graph current]
+
+
+shortestPath :: RoadMap -> City -> City -> (Path, Distance)
+shortestPath graph start end = 
+    let allPaths = dfs2 graph start end []  -- Obtém todos os caminhos
+    in if null allPaths then ([], 0)  -- Se não houver caminhos, retorna ([], 0)
+       else let minPath = Data.List.minimumBy (\(_, d1) (_, d2) -> compare d1 d2) allPaths -- Encontra o caminho com a menor distância
+            in minPath  -- Retorna o menor caminho
 
 
 travelSales :: RoadMap -> Path
@@ -118,14 +129,13 @@ tspBruteForce = undefined -- only for groups of 3 people; groups of 2 people: do
 -- Some graphs to test your work
 
 gTest1 :: RoadMap
-gTest1 = [(7,6,1),(8,2,2),(6,5,2),(0,1,4),(2,5,4),(8,6,6),(2,3,7),(7,8,7),(0,7,8),(1,2,8),(3,4,9),(5,4,10),(1,7,11),(3,5,14),(7,5,14),(8,3,15)]
+gTest1 = [(7,6,1),(8,2,2),(6,5,2),(0,1,4),(2,5,4),(8,6,6),(2,3,7),(7,8,7),(0,7,8),(1,2,8),(3,4,9),(5,4,10),(1,7,11),(3,5,14),(7,5,14),(8,3,15), (6,1,10)]
 
 gTest2 :: RoadMap
 gTest2 = [(0,1,10),(0,2,15),(0,3,20),(1,2,35),(1,3,25),(2,3,30)]
 
 gTest3 :: RoadMap -- unconnected graph
 gTest3 = [(0,1,4),(2,3,2)]
-
 
 gTest4 :: RoadMap
 gTest4 = [(0,1,4),(1,2,3),(2,3,2),(3,0,1),(0,2,5),(1,3,4)]

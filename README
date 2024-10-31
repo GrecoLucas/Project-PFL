@@ -1,2 +1,13 @@
 # Projeto de pfl
 ## HASKELL
+
+### Shortest Path description:
+Functions:
+- "pathDistance": This function calculates the total distance of a given path using the RoadMap.
+- "adjacent": This function returns a list of adjacent cities for a given city, along with their distances.
+- "minimumBy": This function from Data.List allows you to find the minimum element in a list based on a custom comparison function, useful for selecting the shortest path.
+
+This approach explores all possible paths in the graph from the source city to the target city, ensuring that all routes are considered. It leverages recursion and backtracking through DFS to collect paths, ultimately determining the shortest one by evaluating distances. The algorithm is efficient for small graphs but can be slow for larger ones due to its exhaustive search nature.
+
+
+### Travelling Salesman description:
