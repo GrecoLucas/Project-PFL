@@ -2,7 +2,7 @@ import qualified Data.List
 import qualified Data.Bits
 import qualified Data.Array
 
-type City = Int
+type City = String
 type Path = [City]
 type Distance = Int
 type RoadMap = [(City, City, Distance)]
@@ -176,22 +176,13 @@ tspBruteForce :: RoadMap -> Path
 tspBruteForce = undefined
 
 -- Example graphs to test your work
+-- Some graphs to test your work
 gTest1 :: RoadMap
-gTest1 = [(7,6,1),(8,2,2),(6,5,2),(0,1,4),(2,5,4),(8,6,6),(2,3,7),(7,8,7),(0,7,8),
-          (1,2,8),(3,4,9),(5,4,10),(1,7,11),(3,5,14),(7,5,14),(8,3,15),(6,1,10),
-          (0,2,15),(0,3,20),(1,2,35),(1,3,25),(2,3,30)]
+gTest1 = [("7","6",1),("8","2",2),("6","5",2),("0","1",4),("2","5",4),("8","6",6),("2","3",7),("7","8",7),("0","7",8),("1","2",8),("3","4",9),("5","4",10),("1","7",11),("3","5",14)]
 
 gTest2 :: RoadMap
-gTest2 = [(0,1,10),(0,2,15),(0,3,20),(1,2,35),(1,3,25),(2,3,30)]
+gTest2 = [("0","1",10),("0","2",15),("0","3",20),("1","2",35),("1","3",25),("2","3",30)]
 
-gTest3 :: RoadMap -- Unconnected graph
-gTest3 = [(0,1,4),(2,3,2)]
+gTest3 :: RoadMap -- unconnected graph
+gTest3 = [("0","1",4),("2","3",2)]
 
-gTest4 :: RoadMap
-gTest4 = [(0,1,4),(0,2,1),(2,1,1),(1,2,10),(1,3,2),(2,3,3)]
-
-gTest5 :: RoadMap
-gTest5 = [(0,1,10),(0,2,15),(0,3,20),(1,2,35),(1,3,25),(1,4,30),
-          (2,3,30),(2,4,20),(2,5,25),(3,4,15),(3,5,20),(4,5,30),
-          (1,6,10),(6,7,10),(5,7,20),(4,6,25),(0,5,15),(7,8,5),
-          (5,8,10),(2,7,15),(1,8,20)]
