@@ -1,18 +1,15 @@
 import qualified Data.List
 import qualified Data.Bits
 import qualified Data.Array
-import Data.List
---dynamic programming e bit masking, travelers salesman se o numero em binario só for tudo a 1, mto eficiente
+import Data.Maybe (fromJust, isNothing)
 
 
 -- PFL 2024/2025 Practical assignment 1
 
 -- Uncomment the some/all of the first three lines to import the modules, do not change the code of these lines.
-
 type City = Int
 type Path = [City]
 type Distance = Int
-
 type RoadMap = [(City,City,Distance)]
 
 -- nub remove duplicates from a list
@@ -120,8 +117,79 @@ shortestPath graph start end =
             in minPath  -- Retorna o menor caminho
 
 
+
+
+-- Função para construir a matriz de distâncias
+buildDistanceMatrix :: RoadMap -> Data.Array.Array (Int, Int) Distance
+buildDistanceMatrix roadmap = Data.Array.array bounds [((i, j), dist i j) | i <- [0..n-1], j <- [0..n-1]]
+  where
+    citiesList = Data.List.nub [c | (c1, c2, _) <- roadmap, c <- [c1, c2]]
+    n = length citiesList
+    cityIndex c = fromJust $ Data.List.elemIndex c citiesList
+    bounds = ((0, 0), (n-1, n-1))
+    dist i j
+      | i == j = 0
+      | otherwise = case Data.List.find (\(x, y, _) -> (cityIndex x == i && cityIndex y == j) || (cityIndex x == j && cityIndex y == i)) roadmap of
+          Just (_, _, d) -> d
+          Nothing -> maxBound `div` 2  -- Representa "infinito"
+
+-- Algoritmo Held-Karp para resolver o TSP
 travelSales :: RoadMap -> Path
-travelSales = undefined
+travelSales roadmap = map indexCity (constructPath finalMask lastCity)
+  where
+    citiesList = Data.List.nub [c | (c1, c2, _) <- roadmap, c <- [c1, c2]]
+    n = length citiesList
+    cityIndices = [0..n-1]
+    cityIndex c = fromJust $ Data.List.elemIndex c citiesList
+    indexCity i = citiesList !! i
+    distMatrix = buildDistanceMatrix roadmap
+    finalMask = (1 `Data.Bits.shiftL` n) - 1
+
+    -- Tabela dp[mask][u] = (distância mínima para alcançar 'mask' terminando em 'u', cidade anterior)
+    dp :: Data.Array.Array (Int, Int) (Distance, Maybe Int)
+    dp = Data.Array.array ((0,0), (finalMask,n-1)) [((mask,u), value mask u) | mask <- [0..finalMask], u <- cityIndices]
+
+    value mask u
+      | mask == (1 `Data.Bits.shiftL` u) =
+          if u == 0 then (0, Nothing)
+          else if distMatrix Data.Array.! (0, u) < maxBound `div` 2 then (distMatrix Data.Array.! (0, u), Just 0)
+          else (maxBound `div` 2, Nothing)
+      | (mask Data.Bits..&. (1 `Data.Bits.shiftL` u)) == 0 = (maxBound `div` 2, Nothing)
+      | otherwise =
+          let prevMask = mask `clearBit` u
+              candidates = [ (fst (dp Data.Array.! (prevMask,k)) + distMatrix Data.Array.! (k,u), Just k)
+                           | k <- cityIndices
+                           , (prevMask Data.Bits..&. (1 `Data.Bits.shiftL` k)) /= 0
+                           , distMatrix Data.Array.! (k,u) < maxBound `div` 2
+                           ]
+          in if null candidates
+             then (maxBound `div` 2, Nothing)
+             else minimumBy fst candidates
+
+    -- Encontra a cidade final com menor custo para voltar à cidade inicial
+    (minCost, Just lastCity) = minimum [ (fst (dp Data.Array.! (finalMask, u)) + distMatrix Data.Array.! (u, 0), Just u)
+                                       | u <- cityIndices
+                                       , u /= 0
+                                       , fst (dp Data.Array.! (finalMask, u)) < maxBound `div` 2
+                                       , distMatrix Data.Array.! (u, 0) < maxBound `div` 2
+                                       ]
+
+    -- Função para reconstruir o caminho mínimo
+    constructPath mask u
+      | mask == (1 `Data.Bits.shiftL` u) = [u]
+      | otherwise = case snd (dp Data.Array.! (mask, u)) of
+          Just k  -> constructPath (mask `clearBit` u) k ++ [u]
+          Nothing -> error "Caminho não encontrado"
+
+    -- Função auxiliar para obter o mínimo baseado em uma projeção
+    minimumBy :: Ord b => (a -> b) -> [a] -> a
+    minimumBy _ [] = error "minimumBy: empty list"
+    minimumBy f xs = foldl1 (\x y -> if f x <= f y then x else y) xs
+
+    -- Função para limpar o bit na posição 'u'
+    clearBit mask u = mask Data.Bits..&. Data.Bits.complement (1 `Data.Bits.shiftL` u)
+
+
 
 tspBruteForce :: RoadMap -> Path
 tspBruteForce = undefined -- only for groups of 3 people; groups of 2 people: do not edit this function
@@ -129,7 +197,7 @@ tspBruteForce = undefined -- only for groups of 3 people; groups of 2 people: do
 -- Some graphs to test your work
 
 gTest1 :: RoadMap
-gTest1 = [(7,6,1),(8,2,2),(6,5,2),(0,1,4),(2,5,4),(8,6,6),(2,3,7),(7,8,7),(0,7,8),(1,2,8),(3,4,9),(5,4,10),(1,7,11),(3,5,14),(7,5,14),(8,3,15), (6,1,10)]
+gTest1 = [(7,6,1),(8,2,2),(6,5,2),(0,1,4),(2,5,4),(8,6,6),(2,3,7),(7,8,7),(0,7,8),(1,2,8),(3,4,9),(5,4,10),(1,7,11),(3,5,14),(7,5,14),(8,3,15), (6,1,10), (0,2,15), (0,3,20), (1,2,35), (1,3,25), (2,3,30)]
 
 gTest2 :: RoadMap
 gTest2 = [(0,1,10),(0,2,15),(0,3,20),(1,2,35),(1,3,25),(2,3,30)]
@@ -138,4 +206,14 @@ gTest3 :: RoadMap -- unconnected graph
 gTest3 = [(0,1,4),(2,3,2)]
 
 gTest4 :: RoadMap
-gTest4 = [(0,1,4),(1,2,3),(2,3,2),(3,0,1),(0,2,5),(1,3,4)]
+gTest4 = [(0,1,4),(0,2,1),(2,1,1),(1,2,10),(1,3,2),(2,3,3)]
+
+gTest5 :: RoadMap
+gTest5 = [
+    (0, 1, 10), (0, 2, 15), (0, 3, 20),
+    (1, 2, 35), (1, 3, 25), (1, 4, 30),
+    (2, 3, 30), (2, 4, 20), (2, 5, 25),
+    (3, 4, 15), (3, 5, 20), (4, 5, 30),
+    (1, 6, 10), (6, 7, 10), (5, 7, 20),
+    (4, 6, 25), (0, 5, 15), (7, 8, 5),
+    (5, 8, 10), (2, 7, 15), (1, 8, 20)]
