@@ -7,11 +7,11 @@ type Path = [City]
 type Distance = Int
 type RoadMap = [(City, City, Distance)]
 
--- Function to retrieve all cities from the roadmap
+-- cities -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 cities :: RoadMap -> [City]
 cities r = Data.List.nub ([c | (c, _, _) <- r] ++ [c | (_, c, _) <- r])
 
--- Function to check if two cities are adjacent
+-- areAdjacent --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 areAdjacent :: RoadMap -> City -> City -> Bool
 areAdjacent [] _ _ = False
 areAdjacent ((a,b,_):xs) c1 c2 
@@ -19,14 +19,14 @@ areAdjacent ((a,b,_):xs) c1 c2
     | c1 == c2 = True
     | otherwise = areAdjacent xs c1 c2
 
--- Function to get the distance between two cities
+-- distance -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 distance :: RoadMap -> City -> City -> Maybe Distance
 distance [] _ _ = Nothing
 distance ((a,b,d):xs) c1 c2
     | (c1 == a && c2 == b) || (c1 == b && c2 == a) = Just d
     | otherwise = distance xs c1 c2
 
--- Function to find all adjacent cities with their distances
+-- adjacent -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 adjacent :: RoadMap -> City -> [(City, Distance)]
 adjacent [] _ = []
 adjacent ((a,b,d):xs) c1 
@@ -34,7 +34,7 @@ adjacent ((a,b,d):xs) c1
     | b == c1 = (a,d) : adjacent xs c1
     | otherwise = adjacent xs c1
 
--- Function to compute the total distance of a path
+-- pathDistance -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 pathDistance :: RoadMap -> Path -> Maybe Distance
 pathDistance _ [] = Just 0
 pathDistance _ [x] = Just 0
@@ -44,7 +44,8 @@ pathDistance r (x:y:xs) = case distance r x y of
         Nothing -> Nothing
     Nothing -> Nothing
 
--- Auxiliary functions to find the city with the most adjacents
+-- rome -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Auxiliary function to count the number of adjacent cities
 numberOfAdj :: RoadMap -> City -> Int
 numberOfAdj [] _ = 0
 numberOfAdj ((a,b,_):xs) c1
@@ -52,7 +53,7 @@ numberOfAdj ((a,b,_):xs) c1
     | b == c1 = 1 + numberOfAdj xs c1
     | otherwise = numberOfAdj xs c1
 
--- Function to list the cities with the number of citys adjacent to them
+-- Auxiliary function to list the cities with the number of citys adjacent to them
 adjacentList :: RoadMap -> [(City, Int)]
 adjacentList r = [(city, numberOfAdj r city) | city <- cities r]
 
@@ -62,7 +63,9 @@ rome r = [city | (city, adjCount) <- adjacentList r, adjCount == maxAdj]
     where 
         maxAdj = maximum [adjCount | (_, adjCount) <- adjacentList r]
 
--- Function to find adjacent cities
+
+--Strongly Connected------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Auxiliary function to find adjacent cities
 adjacentCities :: RoadMap -> City -> [City]
 adjacentCities [] _ = []
 adjacentCities ((a, b, _):xs) c
@@ -70,7 +73,7 @@ adjacentCities ((a, b, _):xs) c
     | b == c = a : adjacentCities xs c
     | otherwise = adjacentCities xs c
 
--- Depth-First Search (DFS) to visit all accessible cities from a given city
+-- Auxiliary Depth-First Search (DFS) to visit all accessible cities from a given city
 dfs :: City -> RoadMap -> [City] -> [City]
 dfs c r visited
     | c `elem` visited = visited
@@ -83,7 +86,8 @@ isStronglyConnected r =
         checkCity c = length (dfs c r []) == length allCities
     in all checkCity allCities
 
--- Function to find all paths between two cities using DFS
+--Shortest Path-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Auxiliary function to find all paths between two cities using DFS
 dfsPaths :: RoadMap -> City -> City -> Path -> [(Path, Distance)]
 dfsPaths graph current target path
     | current == target = case pathDistance graph (path ++ [current]) of
@@ -99,7 +103,8 @@ shortestPath graph start end =
     in if null allPaths then ([], 0)
        else Data.List.minimumBy (\(_, d1) (_, d2) -> compare d1 d2) allPaths
 
--- Function to build the distance matrix
+--Traveling Salesman Problem-----------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Auxiliary function to build the distance matrix
 buildDistanceMatrix :: RoadMap -> Data.Array.Array (Int, Int) Distance
 buildDistanceMatrix roadmap = Data.Array.array bounds [((i, j), dist i j) | i <- [0..n-1], j <- [0..n-1]]
   where
@@ -117,7 +122,9 @@ buildDistanceMatrix roadmap = Data.Array.array bounds [((i, j), dist i j) | i <-
 
 -- Held-Karp algorithm to solve the TSP
 travelSales :: RoadMap -> Path
-travelSales roadmap = map indexCity (constructPath finalMask lastCity)
+travelSales roadmap
+    | not (isStronglyConnected roadmap) = []
+    | otherwise = map indexCity (constructPath finalMask lastCity)
   where
     citiesList = cities roadmap
     n = length citiesList
@@ -171,11 +178,12 @@ travelSales roadmap = map indexCity (constructPath finalMask lastCity)
     -- Function to clear the bit at position 'u'
     clearBit mask u = mask Data.Bits..&. Data.Bits.complement (1 `Data.Bits.shiftL` u)
 
+
 -- Function for brute-force TSP (undefined for groups of 2)
 tspBruteForce :: RoadMap -> Path
 tspBruteForce = undefined
 
--- Example graphs to test your work
+-- Example graphs to test your work -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Some graphs to test your work
 gTest1 :: RoadMap
 gTest1 = [("7","6",1),("8","2",2),("6","5",2),("0","1",4),("2","5",4),("8","6",6),("2","3",7),("7","8",7),("0","7",8),("1","2",8),("3","4",9),("5","4",10),("1","7",11),("3","5",14)]
