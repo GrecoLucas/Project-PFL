@@ -1,5 +1,7 @@
 # Projeto de pfl
 ## HASKELL
+Lucas Greco - up202208296 - 50%
+João  - up2022 - 50%
 
 ### Shortest Path description:
 Functions:
@@ -11,3 +13,9 @@ This approach explores all possible paths in the graph from the source city to t
 
 
 ### Travelling Salesman description:
+Functions:
+- "buildDistanceMatrix": This function constructs a distance matrix from a list of cities and their coordinates. It calculates the distances between each pair of cities and represents this information in a two-dimensional array, where the entry at (i, j) holds the distance from city i to city j.
+- "travelSales" : This function employs the Held-Karp algorithm to solve the Traveling Salesman Problem. The algorithm uses dynamic programming and memoization, allowing it to avoid redundant calculations and significantly improve performance. It computes the shortest path that visits all cities exactly once and returns to the starting city, minimizing the total distance traveled. The time complexity of the algorithm is O(2^n * n^2), where n is the number of cities. 
+
+
+The Held-Karp algorithm is a powerful method for solving the Traveling Salesman Problem, particularly when the number of cities is manageable. By leveraging dynamic programming and memoization, the algorithm effectively reduces the computational burden associated with brute-force approaches. While the time complexity limits its applicability to larger instances, it provides an optimal solution for smaller datasets, making it a valuable tool in operational research and logistics planning.

@@ -63,8 +63,7 @@ rome r = [city | (city, adjCount) <- adjacentList r, adjCount == maxAdj]
     where 
         maxAdj = maximum [adjCount | (_, adjCount) <- adjacentList r]
 
-
---Strongly Connected------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- strongly Connected------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Auxiliary function to find adjacent cities
 adjacentCities :: RoadMap -> City -> [City]
 adjacentCities [] _ = []
@@ -86,7 +85,7 @@ isStronglyConnected r =
         checkCity c = length (dfs c r []) == length allCities
     in all checkCity allCities
 
---Shortest Path-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- shortest Path-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Auxiliary function to find all paths between two cities using DFS
 dfsPaths :: RoadMap -> City -> City -> Path -> [(Path, Distance)]
 dfsPaths graph current target path
@@ -98,12 +97,14 @@ dfsPaths graph current target path
 
 -- Function to find the shortest path between two cities
 shortestPath :: RoadMap -> City -> City -> (Path, Distance)
-shortestPath graph start end = 
-    let allPaths = dfsPaths graph start end []
-    in if null allPaths then ([], 0)
-       else Data.List.minimumBy (\(_, d1) (_, d2) -> compare d1 d2) allPaths
+shortestPath graph start end 
+    | start == end = ([start], 0)
+    | otherwise = 
+        let allPaths = dfsPaths graph start end []
+        in if null allPaths then ([], 0)
+        else Data.List.minimumBy (\(_, d1) (_, d2) -> compare d1 d2) allPaths
 
---Traveling Salesman Problem-----------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Traveling Salesman Problem-----------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Auxiliary function to build the distance matrix
 buildDistanceMatrix :: RoadMap -> Data.Array.Array (Int, Int) Distance
 buildDistanceMatrix roadmap = Data.Array.array bounds [((i, j), dist i j) | i <- [0..n-1], j <- [0..n-1]]
@@ -178,11 +179,10 @@ travelSales roadmap
     -- Function to clear the bit at position 'u'
     clearBit mask u = mask Data.Bits..&. Data.Bits.complement (1 `Data.Bits.shiftL` u)
 
-
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Function for brute-force TSP (undefined for groups of 2)
 tspBruteForce :: RoadMap -> Path
 tspBruteForce = undefined
-
 -- Example graphs to test your work -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Some graphs to test your work
 gTest1 :: RoadMap
@@ -193,4 +193,3 @@ gTest2 = [("0","1",10),("0","2",15),("0","3",20),("1","2",35),("1","3",25),("2",
 
 gTest3 :: RoadMap -- unconnected graph
 gTest3 = [("0","1",4),("2","3",2)]
-
