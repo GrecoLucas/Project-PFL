@@ -12,10 +12,29 @@ Functions:
 This approach explores all possible paths in the graph from the source city to the target city, ensuring that all routes are considered. It leverages recursion and backtracking through DFS to collect paths, ultimately determining the shortest one by evaluating distances. The algorithm is efficient for small graphs but can be slow for larger ones due to its exhaustive search nature.
 
 
-### Travelling Salesman description:
+### Traveling Salesman Problem Description:
 Functions:
-- "buildDistanceMatrix": This function constructs a distance matrix from a list of cities and their coordinates. It calculates the distances between each pair of cities and represents this information in a two-dimensional array, where the entry at (i, j) holds the distance from city i to city j.
-- "travelSales" : This function employs the Held-Karp algorithm to solve the Traveling Salesman Problem. The algorithm uses dynamic programming and memoization, allowing it to avoid redundant calculations and significantly improve performance. It computes the shortest path that visits all cities exactly once and returns to the starting city, minimizing the total distance traveled. The time complexity of the algorithm is O(2^n * n^2), where n is the number of cities. 
 
+- buildDistanceMatrix: This function constructs a distance matrix from a given RoadMap, which is a list of city pairs and the distances between them. It generates a two-dimensional array where each entry at (i, j) holds the direct distance from city i to city j. If a direct connection exists between the cities, the actual distance is stored; otherwise, the distance is represented as "infinite" using a large integer value (maxBound \div 2). This approach allows the algorithm to handle graphs where not all cities are directly connected.
+- travelSales: This function implements the Held-Karp algorithm to solve the Traveling Salesman Problem (TSP). The algorithm uses dynamic programming and bitmasking to efficiently compute the shortest possible route that visits each city exactly once and returns to the starting city.
 
-The Held-Karp algorithm is a powerful method for solving the Traveling Salesman Problem, particularly when the number of cities is manageable. By leveraging dynamic programming and memoization, the algorithm effectively reduces the computational burden associated with brute-force approaches. While the time complexity limits its applicability to larger instances, it provides an optimal solution for smaller datasets, making it a valuable tool in operational research and logistics planning.
+Algorithm Overview:
+Strong Connectivity Check: Initially checks if the provided RoadMap forms a strongly connected graph. If not, it returns an empty list, as a tour visiting all cities isn't possible.
+Initialization:
+Cities List: Retrieves the list of all cities involved.
+Distance Matrix: Generates the distance matrix using buildDistanceMatrix.
+Bitmask Representation: Uses bitmasking to represent subsets of visited cities efficiently. Each city is assigned an index, and a bitmask is used to represent the set of cities visited so far.
+Dynamic Programming Table (dp): Creates a table where each entry dp[mask][u] stores a tuple (Distance, Maybe Int), representing the minimal cost to reach city u after visiting the set of cities represented by mask, and possibly the previous city k that led to this minimal cost.
+Dynamic Programming Computation:
+Base Cases: Handles the initial scenarios where only one city is visited.
+Recursive Relation: For each subset of cities and for each possible ending city u in that subset, computes the minimal cost to reach u by considering all possible previous cities k.
+Minimum Cost Calculation: After filling the dp table, determines the minimal total cost to complete the tour by returning to the starting city.
+Path Reconstruction:
+Constructing the Optimal Path: Utilizes the information stored in the dp table to reconstruct the optimal path starting from the last city back to the starting city.
+Result Formatting: Returns the path with the starting city added at the end to complete the cycle.
+Key Points:
+
+Employs bitmasking to represent and iterate over subsets of cities efficiently.
+Uses a bottom-up dynamic programming approach to build solutions for larger subsets from smaller ones.
+Significantly reduces computational redundancy compared to brute-force methods.
+Time complexity is O(n² * 2ⁿ), where n is the number of cities, making it feasible for small to moderately sized graphs.

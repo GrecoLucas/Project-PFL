@@ -1,13 +1,11 @@
 import qualified Data.List
 import qualified Data.Bits
 import qualified Data.Array
-import Text.Parsec (putState)
 
 type City = String
 type Path = [City]
 type Distance = Int
 type RoadMap = [(City, City, Distance)]
-type AdjList = [(City, [(City, Distance)])]
 -- cities -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 cities :: RoadMap -> [City]
 cities r = Data.List.nub ([c | (c, _, _) <- r] ++ [c | (_, c, _) <- r])
@@ -86,6 +84,8 @@ isStronglyConnected r =
         checkCity c = length (dfs c r []) == length allCities
     in all checkCity allCities
 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 -- shortest Path-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Auxiliary function to find all paths between two cities using DFS
 dfsPaths :: RoadMap -> City -> City -> Path -> [(Path, Distance)]
@@ -104,6 +104,8 @@ shortestPath graph start end
         let allPaths = dfsPaths graph start end [] -- find all paths between the start and end cities
         in if null allPaths then ([], 0)
         else Data.List.minimumBy (\(_, d1) (_, d2) -> compare d1 d2) allPaths -- return the path with the minimum distance
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 -- Traveling Salesman Problem-----------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Auxiliary function to build the distance matrix
@@ -186,8 +188,10 @@ travelSales roadmap
     -- Function to clear the bit at position 'u' in the mask
     clearBit mask u =
         mask Data.Bits..&. Data.Bits.complement (1 `Data.Bits.shiftL` u)
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- Brute force tsp--------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Function for brute-force TSP (undefined for groups of 2)
 tspBruteForce :: RoadMap -> Path
 tspBruteForce roadmap
@@ -203,6 +207,8 @@ tspBruteForce roadmap
         Nothing -> maxBound
     isValidPath path = pathDistance roadmap path /= Nothing
     minimumBy f xs = foldl1 (\x y -> if f x <= f y then x else y) xs
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 -- Example graphs to test your work -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Some graphs to test your work
 gTest1 :: RoadMap
@@ -218,14 +224,29 @@ gTest3 = [("0","1",4),("2","3",2)]
 main :: IO ()
 main = do
 
-    -- Test 'travelSales' function
-    putStrLn "\nTesting 'travelSales' function on gTest1:"
-    print $ travelSales gTest1
-    putStrLn "\nTesting 'tspBruteForce' function on gTest1:"
-    print $ tspBruteForce gTest1
+    putStrLn "Testing cities function:"
+    putStrLn $ show (cities gTest1) -- Expected output: ["7","6","8","2","5","0","1","3","4"]
+    
+    putStrLn "Testing areAdjacent function:"
+    putStrLn $ show (areAdjacent gTest1 "7" "6") -- Expected output: True
 
-    -- Test 'travelSales' function on gTest2
-    putStrLn "\nTesting 'travelSales' function on gTest2:"
-    print $ travelSales gTest2
-    putStrLn "\nTesting 'tspBruteForce' function on gTest2:"
-    print $ tspBruteForce gTest2
+    putStrLn "Testing distance function:"
+    putStrLn $ show (distance gTest1 "7" "6") -- Expected output: Just 1
+
+    putStrLn "Testing adjacent function:"
+    putStrLn $ show (adjacent gTest1 "7") -- Expected output: [("6",1),("8",7),("0",8),("1",11)]
+
+    putStrLn "Testing pathDistance function:"
+    putStrLn $ show (pathDistance gTest1 ["7","6","5","4"]) -- Expected output: Just 13
+
+    putStrLn "Testing rome function:"
+    putStrLn $ show (rome gTest1) -- Expected output: ["7","2","5"]
+
+    putStrLn "Testing isStronglyConnected function:"
+    putStrLn $ show (isStronglyConnected gTest1) -- Expected output: True
+
+    putStrLn "Testing shortestPath function:"
+    putStrLn $ show (shortestPath gTest1 "7" "4") -- Expected output: (["7","6","5","4"], 13)
+
+    putStrLn "Testing travelSales function:"
+    putStrLn $ show (travelSales gTest1) -- Expected output: ["7","0","1","2","3","4","5","6","8","7"]
