@@ -1,12 +1,13 @@
 import qualified Data.List
 import qualified Data.Bits
 import qualified Data.Array
+import Text.Parsec (putState)
 
 type City = String
 type Path = [City]
 type Distance = Int
 type RoadMap = [(City, City, Distance)]
-
+type AdjList = [(City, [(City, Distance)])]
 -- cities -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 cities :: RoadMap -> [City]
 cities r = Data.List.nub ([c | (c, _, _) <- r] ++ [c | (_, c, _) <- r])
@@ -89,100 +90,119 @@ isStronglyConnected r =
 -- Auxiliary function to find all paths between two cities using DFS
 dfsPaths :: RoadMap -> City -> City -> Path -> [(Path, Distance)]
 dfsPaths graph current target path
-    | current == target = case pathDistance graph (path ++ [current]) of
-        Just d -> [(path ++ [current], d)]
+    | current == target = case pathDistance graph (path ++ [current]) of -- if the current city is the target, calculate the distance
+        Just d -> [(path ++ [current], d)] -- if the distance is valid, return the path and the distance
         Nothing -> []
-    | current `elem` path = []
-    | otherwise = concat [dfsPaths graph neighbor target (path ++ [current]) | (neighbor, _) <- adjacent graph current]
+    | current `elem` path = [] -- if the current city is already in the path, return an empty list
+    | otherwise = concat [dfsPaths graph neighbor target (path ++ [current]) | (neighbor, _) <- adjacent graph current] -- otherwise, recursively find the paths
 
 -- Function to find the shortest path between two cities
 shortestPath :: RoadMap -> City -> City -> (Path, Distance)
 shortestPath graph start end 
-    | start == end = ([start], 0)
+    | start == end = ([start], 0) -- if the start and end cities are the same, return the city and a distance of 0
     | otherwise = 
-        let allPaths = dfsPaths graph start end []
+        let allPaths = dfsPaths graph start end [] -- find all paths between the start and end cities
         in if null allPaths then ([], 0)
-        else Data.List.minimumBy (\(_, d1) (_, d2) -> compare d1 d2) allPaths
+        else Data.List.minimumBy (\(_, d1) (_, d2) -> compare d1 d2) allPaths -- return the path with the minimum distance
 
 -- Traveling Salesman Problem-----------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Auxiliary function to build the distance matrix
 buildDistanceMatrix :: RoadMap -> Data.Array.Array (Int, Int) Distance
-buildDistanceMatrix roadmap = Data.Array.array bounds [((i, j), dist i j) | i <- [0..n-1], j <- [0..n-1]]
+buildDistanceMatrix roadmap = Data.Array.array bounds [((i, j), dist i j) | i <- [0..n], j <- [0..n]]
   where
-    citiesList = cities roadmap
-    n = length citiesList
-    cityIndex c = case Data.List.elemIndex c citiesList of
-        Just idx -> idx
-        Nothing -> error "City not found"
-    bounds = ((0, 0), (n - 1, n - 1))
+    citiesList = cities roadmap        -- List of all cities in the roadmap
+    n = length citiesList              -- Total number of cities
+    bounds = ((0, 0), (n, n))          -- Bounds for the distance matrix array
     dist i j
-        | i == j = 0
-        | otherwise = case Data.List.find (\(x, y, _) -> (cityIndex x == i && cityIndex y == j) || (cityIndex x == j && cityIndex y == i)) roadmap of
-            Just (_, _, d) -> d
-            Nothing -> maxBound `div` 2  -- Represents "infinite"
+        | i == j = 0                   -- Distance from a city to itself is 0
+        | otherwise = case distance roadmap (citiesList !! i) (citiesList !! j) of
+            Just d  -> d               -- Direct distance between city i and city j
+            Nothing -> maxBound `div` 2  -- If no direct path, represent distance as "infinite"
 
--- Held-Karp algorithm to solve the TSP
+
+-- Held-Karp algorithm to solve the Traveling Salesman Problem (TSP)
 travelSales :: RoadMap -> Path
 travelSales roadmap
-    | not (isStronglyConnected roadmap) = []
-    | otherwise = map indexCity (constructPath finalMask lastCity)
+    | not (isStronglyConnected roadmap) = []  -- If the graph is not strongly connected, return an empty list
+    | otherwise = 
+        let path = map indexCity (constructPath finalMask lastCity)  -- Reconstruct the optimal path
+        in path ++ [head path]  -- Add the starting city to the end to form a cycle
   where
-    citiesList = cities roadmap
-    n = length citiesList
-    cityIndices = [0..n-1]
-    cityIndex c = case Data.List.elemIndex c citiesList of
-        Just idx -> idx
-        Nothing -> error "City not found"
-    indexCity i = citiesList !! i
-    distMatrix = buildDistanceMatrix roadmap
-    finalMask = (1 `Data.Bits.shiftL` n) - 1
-    dp :: Data.Array.Array (Int, Int) (Distance, Maybe Int)
-    dp = Data.Array.array ((0,0), (finalMask, n-1)) [((mask, u), value mask u) | mask <- [0..finalMask], u <- cityIndices]
+    -- Prepare initial variables
+    citiesList = cities roadmap        -- List of all cities
+    n = length citiesList              -- Total number of cities
+    cityIndices = [0..n-1]             -- Indices representing each city
+    indexCity i = citiesList !! i      -- Retrieve city by index
+    distMatrix = buildDistanceMatrix roadmap  -- Generate the distance matrix
+    finalMask = (1 `Data.Bits.shiftL` n) - 1  -- Bitmask representing all cities visited
 
+    -- Dynamic programming table to store the minimal distances and previous city
+    dp :: Data.Array.Array (Int, Int) (Distance, Maybe Int)
+    dp = Data.Array.array ((0,0), (finalMask, n-1)) 
+        [ ((mask, u), value mask u)
+        | mask <- [0..finalMask], u <- cityIndices ]
+
+    -- Function to compute the minimal cost to reach city u with a set of visited cities represented by mask
     value mask u
         | mask == (1 `Data.Bits.shiftL` u) =
-            if u == 0 then (0, Nothing)
-            else if distMatrix Data.Array.! (0, u) < maxBound `div` 2 then (distMatrix Data.Array.! (0, u), Just 0)
-            else (maxBound `div` 2, Nothing)
-        | (mask Data.Bits..&. (1 `Data.Bits.shiftL` u)) == 0 = (maxBound `div` 2, Nothing)
+            if u == 0
+                then (0, Nothing)  -- Cost to reach the starting city is zero
+                else if distMatrix Data.Array.! (0, u) < maxBound `div` 2
+                    then (distMatrix Data.Array.! (0, u), Just 0)  -- Direct distance from start to city u
+                    else (maxBound `div` 2, Nothing)  -- No direct path from start to city u
+        | (mask Data.Bits..&. (1 `Data.Bits.shiftL` u)) == 0 = (maxBound `div` 2, Nothing)  -- City u not in mask
         | otherwise =
-            let prevMask = clearBit mask u
-                candidates = [ (fst (dp Data.Array.! (prevMask, k)) + distMatrix Data.Array.! (k, u), Just k)
-                             | k <- cityIndices
-                             , (prevMask Data.Bits..&. (1 `Data.Bits.shiftL` k)) /= 0
-                             , distMatrix Data.Array.! (k, u) < maxBound `div` 2
-                             ]
+            let prevMask = clearBit mask u  -- Remove city u from mask to consider previous cities
+                candidates = 
+                    [ (fst (dp Data.Array.! (prevMask, k)) + distMatrix Data.Array.! (k, u), Just k)
+                    | k <- cityIndices
+                    , (prevMask Data.Bits..&. (1 `Data.Bits.shiftL` k)) /= 0  -- City k is in prevMask
+                    , distMatrix Data.Array.! (k, u) < maxBound `div` 2       -- There is a path from k to u
+                    ]
             in if null candidates
-               then (maxBound `div` 2, Nothing)
-               else minimumBy fst candidates
+                then (maxBound `div` 2, Nothing)  -- No possible paths to u
+                else minimumBy fst candidates      -- Choose the path with minimal cost
 
-    -- Find the city with the minimal cost to return to the starting city
-    (minCost, Just lastCity) = minimum [ (fst (dp Data.Array.! (finalMask, u)) + distMatrix Data.Array.! (u, 0), Just u)
-                                       | u <- cityIndices
-                                       , u /= 0
-                                       , fst (dp Data.Array.! (finalMask, u)) < maxBound `div` 2
-                                       , distMatrix Data.Array.! (u, 0) < maxBound `div` 2
-                                       ]
+    -- Find the last city in the optimal path and the minimal total cost
+    (minCost, Just lastCity) =
+        minimum [ (fst (dp Data.Array.! (finalMask, u)) + distMatrix Data.Array.! (u, 0), Just u)
+        | u <- cityIndices, u /= 0
+        , fst (dp Data.Array.! (finalMask, u)) < maxBound `div` 2
+        , distMatrix Data.Array.! (u, 0) < maxBound `div` 2 ]
 
-    -- Function to reconstruct the minimum path
+    -- Function to reconstruct the optimal path using the dp table
     constructPath mask u
-        | mask == (1 `Data.Bits.shiftL` u) = [u]
-        | otherwise = case snd (dp Data.Array.! (mask, u)) of
-            Just k  -> constructPath (clearBit mask u) k ++ [u]
-            Nothing -> error "Path not found"
+        | mask == (1 `Data.Bits.shiftL` u) = [u]  -- Base case: only city u is visited
+        | otherwise = 
+            case snd (dp Data.Array.! (mask, u)) of
+                Just k  -> constructPath (clearBit mask u) k ++ [u]  -- Append current city u to path
+                Nothing -> error "Path not found"
 
-    -- Helper function to get the minimum based on a projection
+    -- Helper function to select the minimum element based on a projection function
     minimumBy :: Ord b => (a -> b) -> [a] -> a
     minimumBy _ [] = error "minimumBy: empty list"
     minimumBy f xs = foldl1 (\x y -> if f x <= f y then x else y) xs
 
-    -- Function to clear the bit at position 'u'
-    clearBit mask u = mask Data.Bits..&. Data.Bits.complement (1 `Data.Bits.shiftL` u)
+    -- Function to clear the bit at position 'u' in the mask
+    clearBit mask u =
+        mask Data.Bits..&. Data.Bits.complement (1 `Data.Bits.shiftL` u)
 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Function for brute-force TSP (undefined for groups of 2)
 tspBruteForce :: RoadMap -> Path
-tspBruteForce = undefined
+tspBruteForce roadmap
+    | not (isStronglyConnected roadmap) = []
+    | otherwise = fst $ minimumBy snd pathsWithDistances
+  where
+    cityList = cities roadmap
+    possiblePaths = Data.List.permutations cityList
+    validPaths = [path ++ [head path] | path <- possiblePaths]
+    pathsWithDistances = [ (path, totalDistance path) | path <- validPaths, isValidPath path ]
+    totalDistance path = case pathDistance roadmap path of
+        Just d  -> d
+        Nothing -> maxBound
+    isValidPath path = pathDistance roadmap path /= Nothing
+    minimumBy f xs = foldl1 (\x y -> if f x <= f y then x else y) xs
 -- Example graphs to test your work -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Some graphs to test your work
 gTest1 :: RoadMap
@@ -193,3 +213,19 @@ gTest2 = [("0","1",10),("0","2",15),("0","3",20),("1","2",35),("1","3",25),("2",
 
 gTest3 :: RoadMap -- unconnected graph
 gTest3 = [("0","1",4),("2","3",2)]
+
+-- Main function to test all functions
+main :: IO ()
+main = do
+
+    -- Test 'travelSales' function
+    putStrLn "\nTesting 'travelSales' function on gTest1:"
+    print $ travelSales gTest1
+    putStrLn "\nTesting 'tspBruteForce' function on gTest1:"
+    print $ tspBruteForce gTest1
+
+    -- Test 'travelSales' function on gTest2
+    putStrLn "\nTesting 'travelSales' function on gTest2:"
+    print $ travelSales gTest2
+    putStrLn "\nTesting 'tspBruteForce' function on gTest2:"
+    print $ tspBruteForce gTest2
