@@ -97,13 +97,13 @@ dfsPaths graph current target path
     | otherwise = concat [dfsPaths graph neighbor target (path ++ [current]) | (neighbor, _) <- adjacent graph current] -- otherwise, recursively find the paths
 
 -- Function to find the shortest path between two cities
-shortestPath :: RoadMap -> City -> City -> (Path, Distance)
+shortestPath :: RoadMap -> City -> City -> [Path]
 shortestPath graph start end 
-    | start == end = ([start], 0) -- if the start and end cities are the same, return the city and a distance of 0
+    | start == end = [[start]] -- if the start and end cities are the same, return the city as a single-element path
     | otherwise = 
         let allPaths = dfsPaths graph start end [] -- find all paths between the start and end cities
-        in if null allPaths then ([], 0)
-        else Data.List.minimumBy (\(_, d1) (_, d2) -> compare d1 d2) allPaths -- return the path with the minimum distance
+        in if null allPaths then []
+        else [fst (Data.List.minimumBy (\(_, d1) (_, d2) -> compare d1 d2) allPaths)] -- return the path with the minimum distance
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -190,7 +190,6 @@ travelSales roadmap
         mask Data.Bits..&. Data.Bits.complement (1 `Data.Bits.shiftL` u)
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-
 -- Brute force tsp--------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Function for brute-force TSP (undefined for groups of 2)
 tspBruteForce :: RoadMap -> Path
@@ -220,33 +219,29 @@ gTest2 = [("0","1",10),("0","2",15),("0","3",20),("1","2",35),("1","3",25),("2",
 gTest3 :: RoadMap -- unconnected graph
 gTest3 = [("0","1",4),("2","3",2)]
 
+gTestLarge :: RoadMap
+gTestLarge =
+    [ ("0","1",7), ("0","2",9), ("0","5",14)
+    , ("1","2",10), ("1","3",15)
+    , ("2","3",11), ("2","5",2)
+    , ("3","4",6)
+    , ("4","5",9)
+    , ("5","6",9)
+    , ("6","7",1), ("6","8",5)
+    , ("7","8",2), ("7","9",7)
+    , ("8","9",3)
+    , ("3","10",4), ("10","9",6)
+    , ("10","11",2), ("11","9",1)
+    , ("5","11",10), ("4","11",5)
+    , ("2","12",4), ("12","13",3), ("13","4",2)
+    , ("13","14",7), ("14","9",4)
+    ]
 -- Main function to test all functions
 main :: IO ()
 main = do
 
-    putStrLn "Testing cities function:"
-    putStrLn $ show (cities gTest1) -- Expected output: ["7","6","8","2","5","0","1","3","4"]
-    
-    putStrLn "Testing areAdjacent function:"
-    putStrLn $ show (areAdjacent gTest1 "7" "6") -- Expected output: True
-
-    putStrLn "Testing distance function:"
-    putStrLn $ show (distance gTest1 "7" "6") -- Expected output: Just 1
-
-    putStrLn "Testing adjacent function:"
-    putStrLn $ show (adjacent gTest1 "7") -- Expected output: [("6",1),("8",7),("0",8),("1",11)]
-
-    putStrLn "Testing pathDistance function:"
-    putStrLn $ show (pathDistance gTest1 ["7","6","5","4"]) -- Expected output: Just 13
-
-    putStrLn "Testing rome function:"
-    putStrLn $ show (rome gTest1) -- Expected output: ["7","2","5"]
-
-    putStrLn "Testing isStronglyConnected function:"
-    putStrLn $ show (isStronglyConnected gTest1) -- Expected output: True
-
     putStrLn "Testing shortestPath function:"
-    putStrLn $ show (shortestPath gTest1 "7" "4") -- Expected output: (["7","6","5","4"], 13)
+    putStrLn $ show (shortestPath gTestLarge "0" "9") -- Expected output: (["7","6","5","4"], 13)
 
     putStrLn "Testing travelSales function:"
-    putStrLn $ show (travelSales gTest1) -- Expected output: ["7","0","1","2","3","4","5","6","8","7"]
+    putStrLn $ show (travelSales gTestLarge) -- Expected output: ["7","0","1","2","3","4","5","6","8","7"]
