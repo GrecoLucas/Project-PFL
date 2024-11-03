@@ -6,34 +6,44 @@ type City = String
 type Path = [City]
 type Distance = Int
 type RoadMap = [(City, City, Distance)]
+
 -- cities -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Extracts a list of unique cities from the RoadMap by collecting all starting and ending cities and removing duplicates.
 cities :: RoadMap -> [City]
 cities r = Data.List.nub ([c | (c, _, _) <- r] ++ [c | (_, c, _) <- r])
 
 -- areAdjacent --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Checks if two cities are directly connected in the RoadMap.
+-- Returns True if a direct road exists between City1 and City2, or if they are the same city, otherwise returns False.
 areAdjacent :: RoadMap -> City -> City -> Bool
 areAdjacent [] _ _ = False
-areAdjacent ((a,b,_):xs) c1 c2 
+areAdjacent ((a, b, _):xs) c1 c2 
     | (c1 == a && c2 == b) || (c1 == b && c2 == a) = True
     | c1 == c2 = True
     | otherwise = areAdjacent xs c1 c2
 
 -- distance -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Finds the distance between two adjacent cities in the RoadMap.
+-- If the cities are connected by a direct road, returns `Just Distance`, otherwise returns `Nothing`.
 distance :: RoadMap -> City -> City -> Maybe Distance
 distance [] _ _ = Nothing
-distance ((a,b,d):xs) c1 c2
+distance ((a, b, d):xs) c1 c2
     | (c1 == a && c2 == b) || (c1 == b && c2 == a) = Just d
     | otherwise = distance xs c1 c2
 
 -- adjacent -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Lists all cities adjacent to a given city in the RoadMap, including the distance to each.
+-- Returns a list of tuples (AdjacentCity, Distance).
 adjacent :: RoadMap -> City -> [(City, Distance)]
 adjacent [] _ = []
-adjacent ((a,b,d):xs) c1 
-    | a == c1 = (b,d) : adjacent xs c1
-    | b == c1 = (a,d) : adjacent xs c1
+adjacent ((a, b, d):xs) c1 
+    | a == c1 = (b, d) : adjacent xs c1
+    | b == c1 = (a, d) : adjacent xs c1
     | otherwise = adjacent xs c1
 
 -- pathDistance -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Computes the total distance for a given path of cities in the RoadMap, if the path is valid (i.e., all cities are adjacent).
+-- Returns `Just TotalDistance` for a valid path, or `Nothing` if any two consecutive cities are not connected.
 pathDistance :: RoadMap -> Path -> Maybe Distance
 pathDistance _ [] = Just 0
 pathDistance _ [x] = Just 0
@@ -44,26 +54,27 @@ pathDistance r (x:y:xs) = case distance r x y of
     Nothing -> Nothing
 
 -- rome -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Auxiliary function to count the number of adjacent cities
+-- Auxiliary function to count the number of adjacent cities for a specific city in the RoadMap.
 numberOfAdj :: RoadMap -> City -> Int
 numberOfAdj [] _ = 0
-numberOfAdj ((a,b,_):xs) c1
+numberOfAdj ((a, b, _):xs) c1
     | a == c1 = 1 + numberOfAdj xs c1
     | b == c1 = 1 + numberOfAdj xs c1
     | otherwise = numberOfAdj xs c1
 
--- Auxiliary function to list the cities with the number of citys adjacent to them
+-- Creates a list of cities with their respective counts of adjacent cities.
 adjacentList :: RoadMap -> [(City, Int)]
 adjacentList r = [(city, numberOfAdj r city) | city <- cities r]
 
--- Function to find all the cities with the most adjacents
+-- Finds cities with the maximum number of direct adjacencies in the RoadMap.
+-- Returns a list of cities that have the highest adjacency count.
 rome :: RoadMap -> [City]
 rome r = [city | (city, adjCount) <- adjacentList r, adjCount == maxAdj]
     where 
         maxAdj = maximum [adjCount | (_, adjCount) <- adjacentList r]
 
 -- strongly Connected------------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Auxiliary function to find adjacent cities
+-- Lists all cities directly connected to a given city in the RoadMap.
 adjacentCities :: RoadMap -> City -> [City]
 adjacentCities [] _ = []
 adjacentCities ((a, b, _):xs) c
@@ -71,13 +82,14 @@ adjacentCities ((a, b, _):xs) c
     | b == c = a : adjacentCities xs c
     | otherwise = adjacentCities xs c
 
--- Auxiliary Depth-First Search (DFS) to visit all accessible cities from a given city
+-- Performs Depth-First Search (DFS) from a given city to explore all accessible cities in the RoadMap.
 dfs :: City -> RoadMap -> [City] -> [City]
 dfs c r visited
     | c `elem` visited = visited
     | otherwise = foldl (\acc city -> dfs city r acc) (c : visited) (adjacentCities r c)
 
--- Function to check if the graph is strongly connected
+-- Checks if all cities in the RoadMap are strongly connected.
+-- A RoadMap is strongly connected if every city is reachable from every other city.
 isStronglyConnected :: RoadMap -> Bool
 isStronglyConnected r =
     let allCities = cities r
