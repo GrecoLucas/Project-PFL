@@ -203,21 +203,8 @@ travelSales roadmap
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 -- Brute force tsp--------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Function for brute-force TSP (undefined for groups of 2)
 tspBruteForce :: RoadMap -> Path
-tspBruteForce roadmap
-    | not (isStronglyConnected roadmap) = []
-    | otherwise = fst $ minimumBy snd pathsWithDistances
-  where
-    cityList = cities roadmap
-    possiblePaths = Data.List.permutations cityList
-    validPaths = [path ++ [head path] | path <- possiblePaths]
-    pathsWithDistances = [ (path, totalDistance path) | path <- validPaths, isValidPath path ]
-    totalDistance path = case pathDistance roadmap path of
-        Just d  -> d
-        Nothing -> maxBound
-    isValidPath path = pathDistance roadmap path /= Nothing
-    minimumBy f xs = foldl1 (\x y -> if f x <= f y then x else y) xs
+tspBruteForce = undefined -- only for groups of 3 people; groups of 2 people: do not edit this function
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 -- Example graphs to test your work -------------------------------------------------------------------------------------------------------------------------------------------------
@@ -230,30 +217,3 @@ gTest2 = [("0","1",10),("0","2",15),("0","3",20),("1","2",35),("1","3",25),("2",
 
 gTest3 :: RoadMap -- unconnected graph
 gTest3 = [("0","1",4),("2","3",2)]
-
-gTestLarge :: RoadMap
-gTestLarge =
-    [ ("0","1",7), ("0","2",9), ("0","5",14)
-    , ("1","2",10), ("1","3",15)
-    , ("2","3",11), ("2","5",2)
-    , ("3","4",6)
-    , ("4","5",9)
-    , ("5","6",9)
-    , ("6","7",1), ("6","8",5)
-    , ("7","8",2), ("7","9",7)
-    , ("8","9",3)
-    , ("3","10",4), ("10","9",6)
-    , ("10","11",2), ("11","9",1)
-    , ("5","11",10), ("4","11",5)
-    , ("2","12",4), ("12","13",3), ("13","4",2)
-    , ("13","14",7), ("14","9",4)
-    ]
--- Main function to test all functions
-main :: IO ()
-main = do
-
-    putStrLn "Testing shortestPath function:"
-    putStrLn $ show (shortestPath gTestLarge "0" "9") -- Expected output: (["7","6","5","4"], 13)
-
-    putStrLn "Testing travelSales function:"
-    putStrLn $ show (travelSales gTestLarge) -- Expected output: ["7","0","1","2","3","4","5","6","8","7"]
